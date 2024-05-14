@@ -253,21 +253,25 @@ public class CodeBlock implements Opcodes {
     }
 
     public CodeBlock ireturn() {
+        returns = true;
         instructionList.add(new InsnNode(IRETURN));
         return this;
     }
 
     public CodeBlock freturn() {
+        returns = true;
         instructionList.add(new InsnNode(FRETURN));
         return this;
     }
 
     public CodeBlock lreturn() {
+        returns = true;
         instructionList.add(new InsnNode(LRETURN));
         return this;
     }
 
     public CodeBlock dreturn() {
+        returns = true;
         instructionList.add(new InsnNode(DRETURN));
         return this;
     }
