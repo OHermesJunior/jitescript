@@ -21,10 +21,12 @@ import static me.qmx.jitescript.util.CodegenUtils.sig;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldNode;
 
 /**
  * Represents a Java Class
@@ -34,11 +36,11 @@ import org.objectweb.asm.tree.ClassNode;
 public class JiteClass implements Opcodes {
 
     public static final String[] INTERFACES = new String[]{};
-    private final List<MethodDefinition> methods = new ArrayList<MethodDefinition>();
-    private final List<FieldDefinition> fields = new ArrayList<FieldDefinition>();
-    private final List<String> interfaces = new ArrayList<String>();
-    private final List<VisibleAnnotation> annotations = new ArrayList<VisibleAnnotation>();
-    private final List<ChildEntry> childClasses = new ArrayList<ChildEntry>();
+    private final List<MethodDefinition> methods = new ArrayList<>();
+    private final List<FieldDefinition> fields = new ArrayList<>();
+    private final List<String> interfaces = new ArrayList<>();
+    private final List<VisibleAnnotation> annotations = new ArrayList<>();
+    private final List<ChildEntry> childClasses = new ArrayList<>();
     private final String className;
     private final String superClassName;
     private String sourceFile;
@@ -62,7 +64,7 @@ public class JiteClass implements Opcodes {
      * @param interfaces the desired java interfaces this class will implement
      */
     public JiteClass(String className, String[] interfaces) {
-        this(className, p((Class) Object.class), interfaces);
+        this(className, p(Object.class), interfaces);
     }
 
     /**
@@ -88,8 +90,36 @@ public class JiteClass implements Opcodes {
         return className;
     }
 
+    public String getSuperClassName() {
+        return superClassName;
+    }
+
     public String getParentClassName() {
         return parentClassName;
+    }
+
+    public List<MethodDefinition> getMethods() {
+        return methods;
+    }
+
+    public List<FieldDefinition> getFields() {
+        return fields;
+    }
+
+    public List<String> getInterfaces() {
+        return interfaces;
+    }
+
+    public List<VisibleAnnotation> getAnnotations() {
+        return annotations;
+    }
+
+    public String getSourceFile() {
+        return sourceFile;
+    }
+
+    public String getSourceDebug() {
+        return sourceDebug;
     }
 
     public void setAccess(int access) {
@@ -124,7 +154,7 @@ public class JiteClass implements Opcodes {
     }
 
     public List<JiteClass> getChildClasses() {
-        List<JiteClass> childClasses = new ArrayList<JiteClass>();
+        List<JiteClass> childClasses = new ArrayList<>();
         for (ChildEntry child : this.childClasses) {
             childClasses.add(child.getJiteClass());
         }
@@ -139,8 +169,10 @@ public class JiteClass implements Opcodes {
      * @param signature  the method signature, on standard JVM notation
      * @param methodBody the method body
      */
-    public void defineMethod(String methodName, int modifiers, String signature, CodeBlock methodBody) {
-        this.methods.add(new MethodDefinition(methodName, modifiers, signature, methodBody));
+    public MethodDefinition defineMethod(String methodName, int modifiers, String signature, CodeBlock methodBody) {
+        MethodDefinition methodDefinition = new MethodDefinition(methodName, modifiers, signature, methodBody);
+        this.methods.add(methodDefinition);
+        return methodDefinition;
     }
 
     /**
@@ -161,13 +193,34 @@ public class JiteClass implements Opcodes {
     /**
      * Defines a default constructor on the target class
      */
-    public void defineDefaultConstructor() {
-        defineDefaultConstructor(ACC_PUBLIC);
+    public MethodDefinition defineDefaultConstructor() {
+        return defineDefaultConstructor(ACC_PUBLIC);
     }
 
-    public void defineDefaultConstructor(int access) {
-        defineMethod("<init>", access, sig(void.class), newCodeBlock().aload(0)
+    public MethodDefinition defineDefaultConstructor(int access) {
+        return defineMethod("<init>", access, sig(void.class), newCodeBlock().aload(0)
                 .invokespecial(superClassName, "<init>", sig(void.class)).voidreturn());
+    }
+
+    public MethodDefinition defineAllFieldsConstructor() {
+        return defineAllFieldsConstructor(ACC_PUBLIC);
+    }
+
+    public MethodDefinition defineAllFieldsConstructor(int access) {
+        CodeBlock init = newCodeBlock();
+        init.aload(0);
+        init.invokespecial(superClassName, "<init>", sig(void.class));
+
+        StringBuilder params = new StringBuilder();
+        for (FieldDefinition fieldDcl : fields) {
+            FieldNode fieldNode = fieldDcl.getFieldNode();
+            init.aload(0);
+            init.putfield(className, fieldNode.name, fieldNode.signature);
+            params.append(fieldNode.desc);
+        }
+        init.voidreturn();
+
+        return defineMethod("<init>", access, "(" + params + ")V", init);
     }
 
     /**
