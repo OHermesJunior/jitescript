@@ -596,6 +596,24 @@ public class CodeBlock implements Opcodes {
         return this;
     }
 
+    /**
+     * Short-hand for pushing true or false depending on a comparison opcode.
+     * (One of the IF opcodes)
+     *
+     * @param instruction one of the IF opcodes
+     */
+    public CodeBlock comparison(int instruction) {
+        LabelNode elseLabel = new LabelNode();
+        instructionList.add(new JumpInsnNode(instruction, elseLabel));
+        iconst_1();
+        LabelNode continueLabel = new LabelNode();
+        go_to(continueLabel);
+        label(elseLabel);
+        iconst_0();
+        label(continueLabel);
+        return this;
+    }
+
     public CodeBlock ifeq(final LabelNode jumpLabel) {
         instructionList.add(new JumpInsnNode(IFEQ, jumpLabel));
         return this;
