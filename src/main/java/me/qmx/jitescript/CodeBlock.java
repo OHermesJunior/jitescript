@@ -680,7 +680,9 @@ public class CodeBlock implements Opcodes {
     }
 
     public CodeBlock line(final int line) {
-        visitLineNumber(line, new LabelNode());
+        LabelNode label = new LabelNode();
+        label(label);
+        visitLineNumber(line, label);
         return this;
     }
 
