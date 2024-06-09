@@ -45,7 +45,7 @@ public class JiteClass implements Opcodes {
     private final String superClassName;
     private String sourceFile;
     private String sourceDebug;
-    private int access = ACC_PUBLIC;
+    private int access = ACC_PUBLIC | ACC_SUPER;
     private String parentClassName;
 
     /**
@@ -110,6 +110,10 @@ public class JiteClass implements Opcodes {
         return interfaces;
     }
 
+    public void addInterface(String iface) {
+        this.interfaces.add(iface);
+    }
+
     public List<VisibleAnnotation> getAnnotations() {
         return annotations;
     }
@@ -124,6 +128,19 @@ public class JiteClass implements Opcodes {
 
     public void setAccess(int access) {
         this.access = access;
+        if ((this.access & ACC_INTERFACE) == ACC_INTERFACE) {
+            // spec: interfaces must have the abstract flag
+            this.access |= ACC_ABSTRACT;
+            // spec: interfaces must not have final, super or enum flags
+            if (   (this.access & ACC_FINAL) != 0
+                || (this.access & ACC_SUPER) != 0
+                || (this.access & ACC_ENUM) != 0) {
+                throw new IllegalArgumentException("Interfaces must not have ACC_FINAL, ACC_SUPER or ACC_ENUM flags.");
+            }
+        } else {
+            // spec: classes must have super flag
+            this.access |= ACC_SUPER;
+        }
     }
 
     public void setParentClassName(String parentClassName) {
@@ -245,7 +262,7 @@ public class JiteClass implements Opcodes {
     public byte[] toBytes(JDKVersion version) {
         ClassNode node = new ClassNode();
         node.version = version.getVer();
-        node.access = this.access | ACC_SUPER;
+        node.access = this.access;
         node.name = this.className;
         node.superName = this.superClassName;
         node.sourceFile = this.sourceFile;
